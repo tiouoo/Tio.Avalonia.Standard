@@ -6,7 +6,7 @@ public static class ApplicationEvents
 {
     public static event Action? SaveSettings;
 
-    internal static void RaiseSaveSettings()
+    public static void RaiseSaveSettings()
     {
         SaveSettings?.Invoke();
     }
@@ -14,7 +14,7 @@ public static class ApplicationEvents
 
     public static event Func<Task<bool>>? AppExiting;
 
-    internal static async Task<bool> RaiseAppExiting()
+    public static async Task<bool> RaiseAppExiting()
     {
         if (AppExiting == null) return true;
 
@@ -34,7 +34,7 @@ public static class ApplicationEvents
 
     public static event Action<object?, DragEventArgs>? AppDragDrop;
 
-    internal static void RaiseAppDragDrop(object? sender, DragEventArgs e)
+    public static void RaiseAppDragDrop(object? sender, DragEventArgs e)
     {
         AppDragDrop?.Invoke(sender, e);
     }
