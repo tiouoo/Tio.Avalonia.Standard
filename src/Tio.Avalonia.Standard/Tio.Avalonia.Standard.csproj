@@ -10,4 +10,8 @@
       <Folder Include="Modules\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\..\module\TioUi.Avalonia\src\TioUi\TioUi.csproj" />
+    </ItemGroup>
+
 </Project>
