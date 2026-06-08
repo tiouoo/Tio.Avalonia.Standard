@@ -1,6 +1,9 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Avalonia.Input;
+using CommunityToolkit.Mvvm.Input;
+using Tio.Avalonia.Standard.Modules.Extensions;
 using Tio.Avalonia.Standard.Tab.Entries;
 using TioUi.Controls;
 
@@ -8,13 +11,53 @@ namespace Tio.Avalonia.Standard.Tab.Interface;
 
 public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
 {
+    public TioTabWindowBase()
+    {
+        KeyBindings.Add(new KeyBinding
+        {
+            Gesture = KeyGesture.Parse("Ctrl+T"),
+            Command = new RelayCommand(CreateNewTab)
+        });
+        KeyBindings.Add(new KeyBinding
+        {
+            Gesture = KeyGesture.Parse("Ctrl+W"),
+            Command = new RelayCommand(CloseCurrentTab)
+        });
+        KeyBindings.Add(new KeyBinding
+        {
+            Gesture = KeyGesture.Parse("Ctrl+Shift+W"),
+            Command = new RelayCommand(CloseAllTab)
+        });
+    }
+
+    public void CloseAllTab()
+    {
+        Tabs.ForEach(x => x.Close());
+    }
+
+    public void CreateNewTab()
+    {
+        CreateNewTabFunc?.Invoke();
+    }
+
+    public void CloseCurrentTab()
+    {
+        SelectedTab?.Close();
+    }
+
+    public Action? CreateNewTabFunc { get; set; }
+
     public TioNotificationManager Notification { get; set; }
     public TioToastManager Toast { get; set; }
     public TioWindow Window { get; set; }
     public bool IsMainWindow { get; init; }
     public ObservableCollection<TabEntry> Tabs { get; } = [];
 
-    public Func<TabEntry>? CreateLastTab { get; set; } = null;
+    public Action? CreateLastTabFunc
+    {
+        get => field ?? CreateNewTabFunc;
+        set;
+    }
 
     public TabEntry? SelectedTab
     {

@@ -1,4 +1,3 @@
-﻿using Avalonia.Controls;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Tio.Avalonia.Standard.Tab.Interface;
@@ -14,10 +13,12 @@ public partial class TabEntry : ObservableObject
     [ObservableProperty] private int _minWidth;
     [ObservableProperty] private bool _isCloseable;
     [ObservableProperty] private bool _isIconVisible;
+    public TioTabWindowBase Window { get; }
 
-    public TabEntry(ITioTabPage content, object? header = null, string? title = null, StreamGeometry? icon = null,
-        bool? isCloseable = true, bool? isIconVisible = true)
+    public TabEntry(TioTabWindowBase window, ITioTabPage content, object? header = null, string? title = null, 
+        StreamGeometry? icon = null, bool? isCloseable = true, bool? isIconVisible = true)
     {
+        Window = window;
         Title = title ?? content.PageInfo.Title;
         Icon = icon ?? content.PageInfo.Icon;
         Header = header ?? content.PageInfo.Header ?? Title;
@@ -30,19 +31,17 @@ public partial class TabEntry : ObservableObject
     public void Close()
     {
         if (!IsCloseable) return;
-        var toplevel = TopLevel.GetTopLevel(Content as UserControl);
-        if (toplevel is not TioTabWindowBase window) return;
-        var selected = window.SelectedTab == this;
-        window.RemoveTab(this);
+        var selected = Window.SelectedTab == this;
+        Window.RemoveTab(this);
         Content.OnClose();
         if (!selected) return;
-        var tabs = window.Tabs;
-        if (tabs.Count == 0 && window.CreateLastTab != null)
+        var tabs = Window.Tabs;
+        if (tabs.Count == 0 && Window.CreateLastTabFunc != null)
         {
-            window.CreateTab(window.CreateLastTab());
+            Window.CreateLastTabFunc();
         }
 
         if (tabs.Count > 0)
-            window.SelectTab(tabs.Last());
+            Window.SelectTab(tabs.Last());
     }
 }
