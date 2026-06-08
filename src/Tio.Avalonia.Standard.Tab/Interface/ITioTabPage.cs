@@ -6,4 +6,8 @@ public interface ITioTabPage
 {
     public PageInfo PageInfo { get; init; }
     public TabEntry HostTab { get; set; }
+
+    public void OnClose()
+    {
+    }
 }

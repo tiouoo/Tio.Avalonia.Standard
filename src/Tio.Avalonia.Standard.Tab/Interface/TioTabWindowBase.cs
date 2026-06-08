@@ -14,6 +14,8 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
     public bool IsMainWindow { get; init; }
     public ObservableCollection<TabEntry> Tabs { get; } = [];
 
+    public Func<TabEntry>? CreateLastTab { get; set; } = null;
+
     public TabEntry? SelectedTab
     {
         get;
