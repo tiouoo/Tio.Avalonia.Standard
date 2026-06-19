@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Tio.Avalonia.Standard.Tab.Interface;
@@ -44,4 +45,16 @@ public partial class TabEntry : ObservableObject
         if (tabs.Count > 0)
             Window.SelectTab(tabs.Last());
     }
+    
+    public void CloseOther()
+    {
+        foreach (var tab in Window.Tabs.ToList())
+        {
+            if(tab == this) continue;
+            if (!tab.IsCloseable) continue;
+            Window.RemoveTab(tab);
+            tab.Content.OnClose();
+        }
+    }
+    
 }

@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Input;
@@ -32,7 +32,7 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
 
     public void CloseAllTab()
     {
-        Tabs.ForEach(x => x.Close());
+        Tabs.ToList().ForEach(x => x.Close());
     }
 
     public void CreateNewTab()

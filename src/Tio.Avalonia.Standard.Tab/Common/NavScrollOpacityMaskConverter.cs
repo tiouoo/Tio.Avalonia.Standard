@@ -17,8 +17,8 @@ public class NavScrollOpacityMaskConverter : IValueConverter
                 GradientStops =
                 [
                     new GradientStop(Colors.Transparent, 0.0),
-                    new GradientStop(Colors.White, 0.04),
-                    new GradientStop(Colors.White, 0.96),
+                    new GradientStop(Colors.White, 0.03),
+                    new GradientStop(Colors.White, 0.97),
                     new GradientStop(Colors.Transparent, 1.0)
                 ]
             };
@@ -30,8 +30,7 @@ public class NavScrollOpacityMaskConverter : IValueConverter
             GradientStops =
             [
                 new GradientStop(Colors.White, 0.0),
-                new GradientStop(Colors.White, 0.08),
-                new GradientStop(Colors.White, 0.95),
+                new GradientStop(Colors.White, 0.97),
                 new GradientStop(Colors.Transparent, 1.0)
             ]
         };
