@@ -92,6 +92,20 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
         Tabs.Add(tab);
     }
 
+    public void ReorderTab(int oldIndex, int newIndex)
+    {
+        if (oldIndex < 0 || oldIndex >= Tabs.Count || newIndex < 0 || newIndex >= Tabs.Count)
+            return;
+
+        if (oldIndex == newIndex)
+            return;
+
+        var tab = Tabs[oldIndex];
+        Tabs.RemoveAt(oldIndex);
+        Tabs.Insert(newIndex, tab);
+        SelectTab(tab);
+    }
+
     public new event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

@@ -15,6 +15,7 @@ public partial class TabEntry : ObservableObject
     [ObservableProperty] private int _minWidth;
     [ObservableProperty] private bool _isCloseable;
     [ObservableProperty] private bool _isIconVisible;
+    [ObservableProperty] private bool _isDragging;
     public TioTabWindowBase Window { get; set; }
 
     public TabEntry(TioTabWindowBase window, ITioTabPage content, object? header = null, string? title = null,
