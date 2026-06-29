@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Tio.Avalonia.Standard.Tab.Common;
 using Tio.Avalonia.Standard.Tab.Interface;
 
 namespace Tio.Avalonia.Standard.Tab.Entries;
@@ -14,9 +15,9 @@ public partial class TabEntry : ObservableObject
     [ObservableProperty] private int _minWidth;
     [ObservableProperty] private bool _isCloseable;
     [ObservableProperty] private bool _isIconVisible;
-    public TioTabWindowBase Window { get; }
+    public TioTabWindowBase Window { get; set; }
 
-    public TabEntry(TioTabWindowBase window, ITioTabPage content, object? header = null, string? title = null, 
+    public TabEntry(TioTabWindowBase window, ITioTabPage content, object? header = null, string? title = null,
         StreamGeometry? icon = null, bool? isCloseable = true, bool? isIconVisible = true)
     {
         Window = window;
@@ -45,16 +46,28 @@ public partial class TabEntry : ObservableObject
         if (tabs.Count > 0)
             Window.SelectTab(tabs.Last());
     }
-    
+
     public void CloseOther()
     {
         foreach (var tab in Window.Tabs.ToList())
         {
-            if(tab == this) continue;
+            if (tab == this) continue;
             if (!tab.IsCloseable) continue;
             Window.RemoveTab(tab);
             tab.Content.OnClose();
         }
     }
-    
+
+    public void MoveTabToNewWindow()
+    {
+        var oldWindow = Window;
+        var window = Functions.CreateNewTabWindowFunc();
+        Window.RemoveTab(this);
+        window.AddTab(this);
+        Window = window;
+        window.SelectTab(this);
+        window.Show();
+        if (oldWindow.Tabs.Count == 0)
+            oldWindow.Close();
+    }
 }

@@ -50,7 +50,7 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
     public TioNotificationManager Notification { get; set; }
     public TioToastManager Toast { get; set; }
     public TioWindow Window { get; set; }
-    public bool IsMainWindow { get; init; }
+    public bool IsMainWindow { get; init; } 
     public ObservableCollection<TabEntry> Tabs { get; } = [];
 
     public Action? CreateLastTabFunc
