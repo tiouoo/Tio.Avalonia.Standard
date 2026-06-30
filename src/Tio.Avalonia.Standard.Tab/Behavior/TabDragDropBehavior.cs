@@ -30,6 +30,7 @@ public class TabDragDropBehavior
     private Control? _itemsContainer;
     private TioTabWindowBase? _window;
     private TioTabWindowBase? _targetWindow;
+    private TabDragPreviewWindow? _dragPreviewWindow;
     private const double DragThreshold = 5.0;
     private TabDragState _dragState = TabDragState.NoOperation;
 
@@ -115,23 +116,24 @@ public class TabDragDropBehavior
         var dragDistance = Math.Sqrt(dragVector.X * dragVector.X + dragVector.Y * dragVector.Y);
 
         if (!_isDragging && dragDistance > DragThreshold)
-        {
-            _isDragging = true;
-            
-            if (TioTabWindowBase.AllWindows.Count == 1 && _window.Tabs.Count == 1)
             {
-                DragState = TabDragState.MoveWindow;
+                _isDragging = true;
+                
+                if (TioTabWindowBase.AllWindows.Count == 1 && _window.Tabs.Count == 1)
+                {
+                    DragState = TabDragState.MoveWindow;
+                }
+                else
+                {
+                    _draggedTab.IsDragging = true;
+                    ShowDragPreview(_screenDragStartPoint);
+                }
+                
+                if (sender is Control control)
+                {
+                    e.Pointer.Capture(control);
+                }
             }
-            else
-            {
-                _draggedTab.IsDragging = true;
-            }
-            
-            if (sender is Control control)
-            {
-                e.Pointer.Capture(control);
-            }
-        }
 
         if (_isDragging)
         {
@@ -143,6 +145,7 @@ public class TabDragDropBehavior
             {
                 var screenPoint = GetScreenPosition(e);
                 UpdateDragState(screenPoint, currentPoint);
+                UpdateDragPreviewPosition(screenPoint);
 
                 if (DragState == TabDragState.ReorderInCurrentWindow)
                 {
@@ -194,6 +197,8 @@ public class TabDragDropBehavior
         {
             _draggedTab.IsDragging = false;
         }
+
+        HideDragPreview();
 
         _draggedElement = null;
         _draggedTab = null;
@@ -381,5 +386,33 @@ public class TabDragDropBehavior
         }
 
         return null;
+    }
+
+    private void ShowDragPreview(PixelPoint screenPosition)
+    {
+        if (_draggedTab == null)
+            return;
+
+        _dragPreviewWindow = new TabDragPreviewWindow();
+        _dragPreviewWindow.UpdateContent(_draggedTab);
+        _dragPreviewWindow.MoveTo(screenPosition);
+        _dragPreviewWindow.Show();
+    }
+
+    private void UpdateDragPreviewPosition(PixelPoint screenPosition)
+    {
+        if (_dragPreviewWindow != null)
+        {
+            _dragPreviewWindow.MoveTo(screenPosition);
+        }
+    }
+
+    private void HideDragPreview()
+    {
+        if (_dragPreviewWindow != null)
+        {
+            _dragPreviewWindow.Close();
+            _dragPreviewWindow = null;
+        }
     }
 }
