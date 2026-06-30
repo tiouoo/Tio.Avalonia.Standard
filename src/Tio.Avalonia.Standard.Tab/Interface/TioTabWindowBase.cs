@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.Input;
@@ -11,8 +13,17 @@ namespace Tio.Avalonia.Standard.Tab.Interface;
 
 public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
 {
+    private static readonly List<TioTabWindowBase> _allWindows = [];
+
+    public static IReadOnlyList<TioTabWindowBase> AllWindows => _allWindows.AsReadOnly();
+
+    public string WindowId { get; }
+
     public TioTabWindowBase()
     {
+        WindowId = GenerateWindowId();
+        _allWindows.Add(this);
+        
         KeyBindings.Add(new KeyBinding
         {
             Gesture = KeyGesture.Parse("Ctrl+T"),
@@ -28,6 +39,19 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
             Gesture = KeyGesture.Parse("Ctrl+Shift+W"),
             Command = new RelayCommand(CloseAllTab)
         });
+
+        Closed += OnClosed;
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        _allWindows.Remove(this);
+    }
+
+    private static string GenerateWindowId()
+    {
+        var hash = Guid.NewGuid().GetHashCode();
+        return (hash & 0xFFFFFF).ToString("x6");
     }
 
     public void CloseAllTab()

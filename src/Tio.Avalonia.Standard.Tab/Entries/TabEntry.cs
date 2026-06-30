@@ -1,6 +1,10 @@
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Tio.Avalonia.Standard.Tab.Common;
 using Tio.Avalonia.Standard.Tab.Interface;
 
@@ -70,5 +74,94 @@ public partial class TabEntry : ObservableObject
         window.Show();
         if (oldWindow.Tabs.Count == 0)
             oldWindow.Close();
+    }
+
+    public void MoveTabToWindow(TioTabWindowBase targetWindow)
+    {
+        if (targetWindow == null || !TioTabWindowBase.AllWindows.Contains(targetWindow))
+            return;
+
+        var oldWindow = Window;
+        Window.RemoveTab(this);
+        targetWindow.AddTab(this);
+        Window = targetWindow;
+        targetWindow.SelectTab(this);
+        targetWindow.Activate();
+        if (oldWindow.Tabs.Count == 0)
+            oldWindow.Close();
+    }
+
+    public MenuFlyout BuildContextMenu()
+    {
+        var flyout = new MenuFlyout();
+
+        if (IsCloseable)
+        {
+            flyout.Items.Add(new MenuItem
+            {
+                Header = "关闭标签页",
+                InputGesture = KeyGesture.Parse("Ctrl+W"),
+                Command = new RelayCommand(Close),
+                Icon = new PathIcon()
+                {
+                    Data = Geometry.Parse(
+                        "M13.41 12l4.3-4.29a1 1 0 1 0-1.42-1.42L12 10.59l-4.29-4.3a1 1 0 0 0-1.42 1.42l4.3 4.29-4.3 4.29a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l4.29-4.3 4.29 4.3a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42z"),
+                    Width = 10, Height = 10,
+                }
+            });
+        }
+
+        if (Window.Tabs.Count > 1)
+        {
+            flyout.Items.Add(new MenuItem
+            {
+                Header = "关闭其他标签页",
+                Command = new RelayCommand(CloseOther)
+            });
+        }
+
+        var otherWindows = TioTabWindowBase.AllWindows.Where(w => w != Window).ToList();
+        if (otherWindows.Any())
+        {
+            var moveToWindowMenuItem = new MenuItem
+            {
+                Header = "转移到窗口", Icon = new PathIcon()
+                {
+                    Data = Geometry.Parse(
+                        "F1 M640,640z M0,0z M566.6,342.6C579.1,330.1,579.1,309.8,566.6,297.3L406.6,137.3C394.1,124.8 373.8,124.8 361.3,137.3 348.8,149.8 348.8,170.1 361.3,182.6L466.7,288 96,288C78.3,288 64,302.3 64,320 64,337.7 78.3,352 96,352L466.7,352 361.3,457.4C348.8,469.9 348.8,490.2 361.3,502.7 373.8,515.2 394.1,515.2 406.6,502.7L566.6,342.7z"),
+                    Height = 16,
+                }
+            };
+            foreach (var win in otherWindows)
+            {
+                moveToWindowMenuItem.Items.Add(new MenuItem
+                {
+                    Header = $"#{win.WindowId}",
+                    Command = new RelayCommand(() => MoveTabToWindow(win)),
+                    Classes = { "hide-icon" }
+                });
+            }
+
+            flyout.Items.Add(moveToWindowMenuItem);
+        }
+
+        flyout.Items.Add(new MenuItem
+        {
+            Header = "在新窗口打开",
+            Command = new RelayCommand(MoveTabToNewWindow)
+        });
+
+        if (Content is IContextMenuTabPage contextMenuTab)
+        {
+            flyout.Items.Add(new Separator());
+            var customItems = new List<MenuItem>();
+            contextMenuTab.BuildContextMenu(customItems);
+            foreach (var item in customItems)
+            {
+                flyout.Items.Add(item);
+            }
+        }
+
+        return flyout;
     }
 }
