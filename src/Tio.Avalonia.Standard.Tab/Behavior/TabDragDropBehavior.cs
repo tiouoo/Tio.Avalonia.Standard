@@ -42,6 +42,7 @@ public class TabDragDropBehavior
             if (_dragState != value)
             {
                 _dragState = value;
+                UpdateDragPreviewState(_dragState);
             }
         }
     }
@@ -413,6 +414,14 @@ public class TabDragDropBehavior
         {
             _dragPreviewWindow.Close();
             _dragPreviewWindow = null;
+        }
+    }
+
+    private void UpdateDragPreviewState(TabDragState state)
+    {
+        if (_dragPreviewWindow != null)
+        {
+            _dragPreviewWindow.UpdateDragState(state);
         }
     }
 }
