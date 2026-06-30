@@ -8,8 +8,16 @@ using Tio.Avalonia.Standard.Tab.Interface;
 
 namespace Tio.Avalonia.Standard.Tab.Behavior;
 
+public enum TabDragState
+{
+    NoOperation,
+    ReorderInCurrentWindow,
+    TransferToAnotherWindow,
+    DetachToNewWindow
+}
+
 /// <summary>
-/// 为标签页提供拖拽重新排序功能的行为类
+/// 为标签页提供拖拽重新排序、转移到新窗口、转移到其他窗口功能的行为类
 /// </summary>
 public class TabDragDropBehavior
 {
@@ -19,7 +27,21 @@ public class TabDragDropBehavior
     private bool _isDragging;
     private Control? _itemsContainer;
     private TioTabWindowBase? _window;
+    private TioTabWindowBase? _targetWindow;
     private const double DragThreshold = 5.0;
+    private TabDragState _dragState = TabDragState.NoOperation;
+
+    public TabDragState DragState
+    {
+        get => _dragState;
+        private set
+        {
+            if (_dragState != value)
+            {
+                _dragState = value;
+            }
+        }
+    }
 
     /// <summary>
     /// 附加到标签页容器以启用拖拽功能
@@ -56,11 +78,9 @@ public class TabDragDropBehavior
     {
         var point = e.GetCurrentPoint(sender as Control);
         
-        // 只处理左键按下
         if (!point.Properties.IsLeftButtonPressed)
             return;
 
-        // 查找被按下的标签页元素
         var element = e.Source as Control;
         var tabBorder = FindTabBorder(element);
         
@@ -71,7 +91,6 @@ public class TabDragDropBehavior
         if (tabEntry == null)
             return;
 
-        // 检查是否点击在关闭按钮或右键菜单上
         if (IsClickOnCloseButton(element))
             return;
 
@@ -79,6 +98,8 @@ public class TabDragDropBehavior
         _draggedTab = tabEntry;
         _dragStartPoint = point.Position;
         _isDragging = false;
+        _targetWindow = null;
+        DragState = TabDragState.NoOperation;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -90,13 +111,11 @@ public class TabDragDropBehavior
         var dragVector = currentPoint - _dragStartPoint;
         var dragDistance = Math.Sqrt(dragVector.X * dragVector.X + dragVector.Y * dragVector.Y);
 
-        // 检查是否超过拖拽阈值
         if (!_isDragging && dragDistance > DragThreshold)
         {
             _isDragging = true;
             _draggedTab.IsDragging = true;
             
-            // 捕获指针以确保即使鼠标移出控件也能接收事件
             if (sender is Control control)
             {
                 e.Pointer.Capture(control);
@@ -105,16 +124,26 @@ public class TabDragDropBehavior
 
         if (_isDragging && _itemsContainer != null)
         {
-            // 检查是否需要重新排序
-            CheckAndReorderTabs(currentPoint);
+            var screenPoint = GetScreenPosition(e);
+            UpdateDragState(screenPoint, currentPoint);
+
+            if (DragState == TabDragState.ReorderInCurrentWindow)
+            {
+                CheckAndReorderTabs(currentPoint);
+            }
         }
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_isDragging && _draggedTab != null)
+        {
+            var screenPoint = GetScreenPosition(e);
+            HandleDragDrop(screenPoint);
+        }
+        
         EndDrag();
         
-        // 释放指针捕获
         if (sender is Control control)
         {
             e.Pointer.Capture(null);
@@ -136,6 +165,92 @@ public class TabDragDropBehavior
         _draggedElement = null;
         _draggedTab = null;
         _isDragging = false;
+        _targetWindow = null;
+        DragState = TabDragState.NoOperation;
+    }
+
+    private PixelPoint GetScreenPosition(PointerEventArgs e)
+    {
+        if (_window == null)
+            return new PixelPoint(0, 0);
+        
+        var visualRoot = _window as Visual;
+        if (visualRoot == null)
+            return new PixelPoint(0, 0);
+        
+        var clientPoint = e.GetPosition(visualRoot);
+        return visualRoot.PointToScreen(clientPoint);
+    }
+
+    private void UpdateDragState(PixelPoint screenPoint, Point containerPoint)
+    {
+        if (_window == null || _itemsContainer == null)
+            return;
+
+        var containerBounds = new Rect(new Point(0, 0), _itemsContainer.Bounds.Size);
+        
+        if (containerBounds.Contains(containerPoint))
+        {
+            DragState = TabDragState.ReorderInCurrentWindow;
+            _targetWindow = null;
+            return;
+        }
+
+        var targetWindow = FindTargetWindow(screenPoint);
+        if (targetWindow != null && targetWindow != _window)
+        {
+            DragState = TabDragState.TransferToAnotherWindow;
+            _targetWindow = targetWindow;
+            return;
+        }
+
+        DragState = TabDragState.DetachToNewWindow;
+        _targetWindow = null;
+    }
+
+    private TioTabWindowBase? FindTargetWindow(PixelPoint screenPoint)
+    {
+        foreach (var window in TioTabWindowBase.AllWindows)
+        {
+            if (window == _window)
+                continue;
+            
+            if (!window.IsVisible)
+                continue;
+
+            var windowPosition = new Point(window.Position.X, window.Position.Y);
+            var windowBounds = new Rect(windowPosition, window.ClientSize);
+            var screenPointAsPoint = new Point(screenPoint.X, screenPoint.Y);
+            if (windowBounds.Contains(screenPointAsPoint))
+            {
+                return window;
+            }
+        }
+        
+        return null;
+    }
+
+    private void HandleDragDrop(PixelPoint screenPoint)
+    {
+        if (_draggedTab == null)
+            return;
+
+        switch (DragState)
+        {
+            case TabDragState.TransferToAnotherWindow:
+                if (_targetWindow != null)
+                {
+                    _draggedTab.MoveTabToWindow(_targetWindow);
+                }
+                break;
+            
+            case TabDragState.DetachToNewWindow:
+                _draggedTab.MoveTabToNewWindow();
+                break;
+            
+            case TabDragState.ReorderInCurrentWindow:
+                break;
+        }
     }
 
     private Border? FindTabBorder(Control? element)
@@ -179,7 +294,6 @@ public class TabDragDropBehavior
         if (currentIndex < 0)
             return;
 
-        // 查找光标下或最接近的标签页
         var targetTab = FindTabAtPositionOrNearest(currentPoint);
         
         if (targetTab != null && targetTab != _draggedTab)
@@ -188,7 +302,6 @@ public class TabDragDropBehavior
             
             if (targetIndex >= 0 && targetIndex != currentIndex)
             {
-                // 执行重新排序
                 _window.ReorderTab(currentIndex, targetIndex);
             }
         }
@@ -232,60 +345,4 @@ public class TabDragDropBehavior
 
         return null;
     }
-
-    // 允许鼠标移出容器继续操作
-    // private TabEntry? FindTabAtPositionOrNearest(Point position)
-    // {
-    //     if (_itemsContainer == null)
-    //         return null;
-    //
-    //     // 获取所有标签页边框元素及其位置信息
-    //     var tabBorders = _itemsContainer.GetVisualDescendants()
-    //         .OfType<Border>()
-    //         .Where(b => b.Classes.Contains("tab-root") && b.Tag is TabEntry)
-    //         .Select(b => new
-    //         {
-    //             Border = b,
-    //             Tab = b.Tag as TabEntry,
-    //             Position = b.TranslatePoint(new Point(0, 0), _itemsContainer),
-    //             Bounds = b.Bounds
-    //         })
-    //         .Where(x => x.Tab != null && x.Position.HasValue)
-    //         .ToList();
-    //
-    //     if (tabBorders.Count == 0)
-    //         return null;
-    //
-    //     // 首先尝试精确匹配：查找鼠标位置在其范围内的标签页
-    //     foreach (var item in tabBorders)
-    //     {
-    //         var relativeBounds = new Rect(item.Position!.Value, item.Bounds.Size);
-    //         if (relativeBounds.Contains(position))
-    //         {
-    //             return item.Tab;
-    //         }
-    //     }
-    //
-    //     // 如果没有精确匹配，根据 X 轴位置找到最接近的标签页
-    //     // 这样即使鼠标超出容器范围，也能根据水平位置进行排序
-    //     var mouseX = position.X;
-    //     
-    //     // 查找最接近鼠标 X 位置的标签页
-    //     TabEntry? nearestTab = null;
-    //     double minDistance = double.MaxValue;
-    //
-    //     foreach (var item in tabBorders)
-    //     {
-    //         var tabCenterX = item.Position!.Value.X + item.Bounds.Width / 2;
-    //         var distance = Math.Abs(tabCenterX - mouseX);
-    //
-    //         if (distance < minDistance)
-    //         {
-    //             minDistance = distance;
-    //             nearestTab = item.Tab;
-    //         }
-    //     }
-    //
-    //     return nearestTab;
-    // }
 }

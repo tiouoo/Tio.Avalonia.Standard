@@ -66,12 +66,29 @@ public partial class TabEntry : ObservableObject
     public void MoveTabToNewWindow()
     {
         var oldWindow = Window;
-        var window = Functions.CreateNewTabWindowFunc();
+        if (oldWindow == null)
+            return;
+
+        var oldSelected = oldWindow.SelectedTab == this;
+
+        if (Content is Control contentControl)
+        {
+            DetachControl(contentControl);
+        }
+
         Window.RemoveTab(this);
+
+        if (oldSelected && oldWindow.Tabs.Count > 0)
+        {
+            oldWindow.SelectTab(oldWindow.Tabs.Last());
+        }
+
+        var window = Functions.CreateNewTabWindowFunc();
         window.AddTab(this);
         Window = window;
         window.SelectTab(this);
         window.Show();
+
         if (oldWindow.Tabs.Count == 0)
             oldWindow.Close();
     }
@@ -82,13 +99,42 @@ public partial class TabEntry : ObservableObject
             return;
 
         var oldWindow = Window;
+        if (oldWindow == null)
+            return;
+
+        var oldSelected = oldWindow.SelectedTab == this;
+
+        if (Content is Control contentControl)
+        {
+            DetachControl(contentControl);
+        }
+
         Window.RemoveTab(this);
+
+        if (oldSelected && oldWindow.Tabs.Count > 0)
+        {
+            oldWindow.SelectTab(oldWindow.Tabs.Last());
+        }
+
         targetWindow.AddTab(this);
         Window = targetWindow;
         targetWindow.SelectTab(this);
         targetWindow.Activate();
+
         if (oldWindow.Tabs.Count == 0)
             oldWindow.Close();
+    }
+
+    private static void DetachControl(Control control)
+    {
+        if (control.Parent is Panel panel)
+        {
+            panel.Children.Remove(control);
+        }
+        else if (control.Parent is ContentControl contentControl)
+        {
+            contentControl.Content = null;
+        }
     }
 
     public MenuFlyout BuildContextMenu()
