@@ -34,20 +34,24 @@
         MinWidth="135"
         Opacity="1"
         Padding="8,6,8,6">
-        <DockPanel VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <PathIcon
-                DockPanel.Dock="Left"
-                Height="20"
+                Height="18"
                 Margin="0,0,4,0"
                 VerticalAlignment="Center"
-                Width="20"
+                Width="18"
                 x:Name="IconPath" />
             <ContentControl
-                DockPanel.Dock="Right"
                 FontSize="14"
-                Margin="5,-2,0,0"
+                Margin="2,-2,0,0"
                 Name="Header"
                 VerticalAlignment="Center" />
-        </DockPanel>
+            <PathIcon
+                Data="F1 M640,640z M0,0z M431.2,476.5L163.5,208.8C141.1,240.2 128,278.6 128,320 128,426 214,512 320,512 361.5,512 399.9,498.9 431.2,476.5z M476.5,431.2C498.9,399.8 512,361.4 512,320 512,214 426,128 320,128 278.5,128 240.1,141.1 208.8,163.5L476.5,431.2z M64,320C64,178.6 178.6,64 320,64 461.4,64 576,178.6 576,320 576,461.4 461.4,576 320,576 178.6,576 64,461.4 64,320z"
+                Height="16"
+                Margin="15,0,0,0"
+                VerticalAlignment="Center"
+                Width="16" />
+        </StackPanel>
     </Border>
 </Window>
