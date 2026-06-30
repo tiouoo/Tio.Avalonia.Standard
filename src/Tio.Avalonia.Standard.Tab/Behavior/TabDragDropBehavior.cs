@@ -193,13 +193,18 @@ public class TabDragDropBehavior
             }
         }
     }
-
+    
     private TabEntry? FindTabAtPositionOrNearest(Point position)
     {
         if (_itemsContainer == null)
             return null;
 
-        // 获取所有标签页边框元素及其位置信息
+        var containerBounds = new Rect(new Point(0, 0), _itemsContainer.Bounds.Size);
+        if (!containerBounds.Contains(position))
+        {
+            return null;
+        }
+
         var tabBorders = _itemsContainer.GetVisualDescendants()
             .OfType<Border>()
             .Where(b => b.Classes.Contains("tab-root") && b.Tag is TabEntry)
@@ -216,7 +221,6 @@ public class TabDragDropBehavior
         if (tabBorders.Count == 0)
             return null;
 
-        // 首先尝试精确匹配：查找鼠标位置在其范围内的标签页
         foreach (var item in tabBorders)
         {
             var relativeBounds = new Rect(item.Position!.Value, item.Bounds.Size);
@@ -226,26 +230,62 @@ public class TabDragDropBehavior
             }
         }
 
-        // 如果没有精确匹配，根据 X 轴位置找到最接近的标签页
-        // 这样即使鼠标超出容器范围，也能根据水平位置进行排序
-        var mouseX = position.X;
-        
-        // 查找最接近鼠标 X 位置的标签页
-        TabEntry? nearestTab = null;
-        double minDistance = double.MaxValue;
-
-        foreach (var item in tabBorders)
-        {
-            var tabCenterX = item.Position!.Value.X + item.Bounds.Width / 2;
-            var distance = Math.Abs(tabCenterX - mouseX);
-
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                nearestTab = item.Tab;
-            }
-        }
-
-        return nearestTab;
+        return null;
     }
+
+    // 允许鼠标移出容器继续操作
+    // private TabEntry? FindTabAtPositionOrNearest(Point position)
+    // {
+    //     if (_itemsContainer == null)
+    //         return null;
+    //
+    //     // 获取所有标签页边框元素及其位置信息
+    //     var tabBorders = _itemsContainer.GetVisualDescendants()
+    //         .OfType<Border>()
+    //         .Where(b => b.Classes.Contains("tab-root") && b.Tag is TabEntry)
+    //         .Select(b => new
+    //         {
+    //             Border = b,
+    //             Tab = b.Tag as TabEntry,
+    //             Position = b.TranslatePoint(new Point(0, 0), _itemsContainer),
+    //             Bounds = b.Bounds
+    //         })
+    //         .Where(x => x.Tab != null && x.Position.HasValue)
+    //         .ToList();
+    //
+    //     if (tabBorders.Count == 0)
+    //         return null;
+    //
+    //     // 首先尝试精确匹配：查找鼠标位置在其范围内的标签页
+    //     foreach (var item in tabBorders)
+    //     {
+    //         var relativeBounds = new Rect(item.Position!.Value, item.Bounds.Size);
+    //         if (relativeBounds.Contains(position))
+    //         {
+    //             return item.Tab;
+    //         }
+    //     }
+    //
+    //     // 如果没有精确匹配，根据 X 轴位置找到最接近的标签页
+    //     // 这样即使鼠标超出容器范围，也能根据水平位置进行排序
+    //     var mouseX = position.X;
+    //     
+    //     // 查找最接近鼠标 X 位置的标签页
+    //     TabEntry? nearestTab = null;
+    //     double minDistance = double.MaxValue;
+    //
+    //     foreach (var item in tabBorders)
+    //     {
+    //         var tabCenterX = item.Position!.Value.X + item.Bounds.Width / 2;
+    //         var distance = Math.Abs(tabCenterX - mouseX);
+    //
+    //         if (distance < minDistance)
+    //         {
+    //             minDistance = distance;
+    //             nearestTab = item.Tab;
+    //         }
+    //     }
+    //
+    //     return nearestTab;
+    // }
 }
