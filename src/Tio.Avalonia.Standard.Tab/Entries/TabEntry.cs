@@ -203,11 +203,14 @@ public partial class TabEntry : ObservableObject
             flyout.Items.Add(moveToWindowMenuItem);
         }
 
-        flyout.Items.Add(new MenuItem
+        if (Window.Tabs.Count > 1)
         {
-            Header = "在新窗口打开",
-            Command = new RelayCommand(() => MoveTabToNewWindow())
-        });
+            flyout.Items.Add(new MenuItem
+            {
+                Header = "在新窗口打开",
+                Command = new RelayCommand(() => MoveTabToNewWindow())
+            });
+        }
 
         if (Content is IContextMenuTabPage contextMenuTab)
         {

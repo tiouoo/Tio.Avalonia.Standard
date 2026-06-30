@@ -13,7 +13,8 @@ public enum TabDragState
     NoOperation,
     ReorderInCurrentWindow,
     TransferToAnotherWindow,
-    DetachToNewWindow
+    DetachToNewWindow,
+    MoveWindow
 }
 
 /// <summary>
@@ -24,6 +25,7 @@ public class TabDragDropBehavior
     private Control? _draggedElement;
     private TabEntry? _draggedTab;
     private Point _dragStartPoint;
+    private PixelPoint _screenDragStartPoint;
     private bool _isDragging;
     private Control? _itemsContainer;
     private TioTabWindowBase? _window;
@@ -97,6 +99,7 @@ public class TabDragDropBehavior
         _draggedElement = tabBorder;
         _draggedTab = tabEntry;
         _dragStartPoint = point.Position;
+        _screenDragStartPoint = GetScreenPosition(e);
         _isDragging = false;
         _targetWindow = null;
         DragState = TabDragState.NoOperation;
@@ -114,7 +117,15 @@ public class TabDragDropBehavior
         if (!_isDragging && dragDistance > DragThreshold)
         {
             _isDragging = true;
-            _draggedTab.IsDragging = true;
+            
+            if (TioTabWindowBase.AllWindows.Count == 1 && _window.Tabs.Count == 1)
+            {
+                DragState = TabDragState.MoveWindow;
+            }
+            else
+            {
+                _draggedTab.IsDragging = true;
+            }
             
             if (sender is Control control)
             {
@@ -122,16 +133,38 @@ public class TabDragDropBehavior
             }
         }
 
-        if (_isDragging && _itemsContainer != null)
+        if (_isDragging)
         {
-            var screenPoint = GetScreenPosition(e);
-            UpdateDragState(screenPoint, currentPoint);
-
-            if (DragState == TabDragState.ReorderInCurrentWindow)
+            if (DragState == TabDragState.MoveWindow)
             {
-                CheckAndReorderTabs(currentPoint);
+                MoveWindowDrag(e);
+            }
+            else if (_itemsContainer != null)
+            {
+                var screenPoint = GetScreenPosition(e);
+                UpdateDragState(screenPoint, currentPoint);
+
+                if (DragState == TabDragState.ReorderInCurrentWindow)
+                {
+                    CheckAndReorderTabs(currentPoint);
+                }
             }
         }
+    }
+
+    private void MoveWindowDrag(PointerEventArgs e)
+    {
+        if (_window == null)
+            return;
+
+        var currentScreenPoint = GetScreenPosition(e);
+        var delta = new PixelPoint(
+            currentScreenPoint.X - _screenDragStartPoint.X,
+            currentScreenPoint.Y - _screenDragStartPoint.Y
+        );
+
+        _window.MoveWindow(delta);
+        _screenDragStartPoint = currentScreenPoint;
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)

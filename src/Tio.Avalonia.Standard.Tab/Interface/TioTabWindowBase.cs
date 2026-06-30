@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.Input;
 using Tio.Avalonia.Standard.Modules.Extensions;
@@ -143,5 +144,10 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
         field = value;
         OnPropertyChanged(propertyName);
         return true;
+    }
+
+    public void MoveWindow(PixelPoint delta)
+    {
+        Position = new PixelPoint(Position.X + delta.X, Position.Y + delta.Y);
     }
 }
