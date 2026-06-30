@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -63,7 +64,7 @@ public partial class TabEntry : ObservableObject
         }
     }
 
-    public void MoveTabToNewWindow()
+    public void MoveTabToNewWindow(PixelPoint? screenPosition = null)
     {
         var oldWindow = Window;
         if (oldWindow == null)
@@ -83,7 +84,18 @@ public partial class TabEntry : ObservableObject
             oldWindow.SelectTab(oldWindow.Tabs.Last());
         }
 
-        var window = Functions.CreateNewTabWindowFunc();
+        var window = Functions.CreateNewTabWindowFunc(screenPosition ?? new PixelPoint(100, 100));
+        
+        if (screenPosition.HasValue)
+        {
+            var offsetX = -window.Width / 2;
+            var offsetY = -window.Height / 2;
+            window.Position = new PixelPoint(
+                screenPosition.Value.X + (int)offsetX,
+                screenPosition.Value.Y + (int)offsetY
+            );
+        }
+
         window.AddTab(this);
         Window = window;
         window.SelectTab(this);
@@ -194,7 +206,7 @@ public partial class TabEntry : ObservableObject
         flyout.Items.Add(new MenuItem
         {
             Header = "在新窗口打开",
-            Command = new RelayCommand(MoveTabToNewWindow)
+            Command = new RelayCommand(() => MoveTabToNewWindow())
         });
 
         if (Content is IContextMenuTabPage contextMenuTab)

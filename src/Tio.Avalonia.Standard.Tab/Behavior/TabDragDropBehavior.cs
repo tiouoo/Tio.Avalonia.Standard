@@ -197,9 +197,16 @@ public class TabDragDropBehavior
         }
 
         var targetWindow = FindTargetWindow(screenPoint);
-        if (targetWindow != null && targetWindow != _window)
+        if (targetWindow != null)
         {
-            DragState = TabDragState.TransferToAnotherWindow;
+            if (targetWindow == _window)
+            {
+                DragState = TabDragState.ReorderInCurrentWindow;
+            }
+            else
+            {
+                DragState = TabDragState.TransferToAnotherWindow;
+            }
             _targetWindow = targetWindow;
             return;
         }
@@ -212,9 +219,6 @@ public class TabDragDropBehavior
     {
         foreach (var window in TioTabWindowBase.AllWindows)
         {
-            if (window == _window)
-                continue;
-            
             if (!window.IsVisible)
                 continue;
 
@@ -245,7 +249,7 @@ public class TabDragDropBehavior
                 break;
             
             case TabDragState.DetachToNewWindow:
-                _draggedTab.MoveTabToNewWindow();
+                _draggedTab.MoveTabToNewWindow(screenPoint);
                 break;
             
             case TabDragState.ReorderInCurrentWindow:
