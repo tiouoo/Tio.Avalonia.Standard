@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using System.Runtime.InteropServices;
 using Tio.Avalonia.Standard.Tab.Entries;
 using Tio.Avalonia.Standard.Tab.Interface;
 
@@ -120,7 +121,7 @@ public class TabDragDropBehavior
             {
                 _isDragging = true;
                 
-                if (TioTabWindowBase.AllWindows.Count == 1 && _window.Tabs.Count == 1)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || TioTabWindowBase.AllWindows.Count == 1 && _window.Tabs.Count == 1)
                 {
                     DragState = TabDragState.MoveWindow;
                 }
