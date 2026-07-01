@@ -53,6 +53,39 @@ public partial class TabEntry : ObservableObject
             Window.SelectTab(tabs.Last());
     }
 
+    public void MoveTabForward()
+    {
+        var tabs = Window.Tabs;
+        var currentIndex = tabs.IndexOf(this);
+        if (currentIndex <= 0) return;
+        Window.ReorderTab(currentIndex, currentIndex - 1);
+    }
+
+    public void MoveTabBackward()
+    {
+        var tabs = Window.Tabs;
+        var currentIndex = tabs.IndexOf(this);
+        if (currentIndex < 0 || currentIndex >= tabs.Count - 1) return;
+        Window.ReorderTab(currentIndex, currentIndex + 1);
+    }
+
+    public void MoveTabToFront()
+    {
+        var tabs = Window.Tabs;
+        var currentIndex = tabs.IndexOf(this);
+        if (currentIndex <= 0) return;
+        Window.ReorderTab(currentIndex, 0);
+    }
+
+    public void MoveTabToLast()
+    {
+        var tabs = Window.Tabs;
+        var currentIndex = tabs.IndexOf(this);
+        var lastIndex = tabs.Count - 1;
+        if (currentIndex < 0 || currentIndex >= lastIndex) return;
+        Window.ReorderTab(currentIndex, lastIndex);
+    }
+
     public void CloseOther()
     {
         foreach (var tab in Window.Tabs.ToList())
@@ -62,6 +95,7 @@ public partial class TabEntry : ObservableObject
             Window.RemoveTab(tab);
             tab.Content.OnClose();
         }
+        Window.SelectTab(this);
     }
 
     public void MoveTabToNewWindow(PixelPoint? screenPosition = null)
@@ -210,6 +244,59 @@ public partial class TabEntry : ObservableObject
                 Header = "在新窗口打开",
                 Command = new RelayCommand(() => MoveTabToNewWindow())
             });
+        }
+
+        if (Window.Tabs.Count > 1)
+        {
+            var tabs = Window.Tabs;
+            var currentIndex = tabs.IndexOf(this);
+            var isFirst = currentIndex <= 0;
+            var isLast = currentIndex >= tabs.Count - 1;
+
+            var reorderMenuItem = new MenuItem
+            {
+                Header = "排序标签页",
+                Icon = new PathIcon()
+                {
+                    Data = Geometry.Parse(
+                        "M576,512z M0,0z M246.6,374.6L150.6,470.6C138.1,483.1,117.8,483.1,105.3,470.6L9.3,374.6C-3.2,362.1 -3.2,341.8 9.3,329.3 21.8,316.8 42.1,316.8 54.6,329.3L96,370.7 96,64C96,46.3 110.3,32 128,32 145.7,32 160,46.3 160,64L160,370.7 201.4,329.3C213.9,316.8 234.2,316.8 246.7,329.3 259.2,341.8 259.2,362.1 246.7,374.6z M320,32L352,32C369.7,32 384,46.3 384,64 384,81.7 369.7,96 352,96L320,96C302.3,96 288,81.7 288,64 288,46.3 302.3,32 320,32z M320,160L416,160C433.7,160 448,174.3 448,192 448,209.7 433.7,224 416,224L320,224C302.3,224 288,209.7 288,192 288,174.3 302.3,160 320,160z M320,288L480,288C497.7,288 512,302.3 512,320 512,337.7 497.7,352 480,352L320,352C302.3,352 288,337.7 288,320 288,302.3 302.3,288 320,288z M320,416L544,416C561.7,416 576,430.3 576,448 576,465.7 561.7,480 544,480L320,480C302.3,480 288,465.7 288,448 288,430.3 302.3,416 320,416z"),
+                    Height = 14,
+                }
+            };
+
+            reorderMenuItem.Items.Add(new MenuItem
+            {
+                Header = "向前移动",
+                Command = new RelayCommand(MoveTabForward, () => !isFirst),
+                IsEnabled = !isFirst,
+                Classes = { "hide-icon" }
+            });
+
+            reorderMenuItem.Items.Add(new MenuItem
+            {
+                Header = "向后移动",
+                Command = new RelayCommand(MoveTabBackward, () => !isLast),
+                IsEnabled = !isLast,
+                Classes = { "hide-icon" }
+            });
+
+            reorderMenuItem.Items.Add(new MenuItem
+            {
+                Header = "移动到最前",
+                Command = new RelayCommand(MoveTabToFront, () => !isFirst),
+                IsEnabled = !isFirst,
+                Classes = { "hide-icon" }
+            });
+
+            reorderMenuItem.Items.Add(new MenuItem
+            {
+                Header = "移动到最后",
+                Command = new RelayCommand(MoveTabToLast, () => !isLast),
+                IsEnabled = !isLast,
+                Classes = { "hide-icon" }
+            });
+
+            flyout.Items.Add(reorderMenuItem);
         }
 
         if (Content is IContextMenuTabPage contextMenuTab)
