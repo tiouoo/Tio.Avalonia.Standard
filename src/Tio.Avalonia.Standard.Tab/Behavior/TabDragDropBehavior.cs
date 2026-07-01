@@ -240,7 +240,7 @@ public class TabDragDropBehavior
         {
             if (targetWindow == _window)
             {
-                DragState = TabDragState.ReorderInCurrentWindow;
+                DragState = TabDragState.NoOperation;
             }
             else
             {
