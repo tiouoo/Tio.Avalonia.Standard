@@ -57,4 +57,30 @@ public static class UrlHelper
         return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
+
+    public static string GetHost(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return string.Empty;
+
+        string input = url.Trim();
+
+        if (Uri.TryCreate(input, UriKind.Absolute, out var uriResult) &&
+            (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
+        {
+            return uriResult.Host;
+        }
+
+        string prefixed = input.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                          input.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? input
+            : $"https://{input}";
+
+        if (Uri.TryCreate(prefixed, UriKind.Absolute, out var uriResult2))
+        {
+            return uriResult2.Host;
+        }
+
+        return string.Empty;
+    }
 }
