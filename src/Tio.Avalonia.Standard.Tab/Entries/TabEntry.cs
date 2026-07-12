@@ -17,10 +17,13 @@ public partial class TabEntry : ObservableObject
     [ObservableProperty] private StreamGeometry _icon;
     [ObservableProperty] private object _header;
     [ObservableProperty] private ITioTabPage _content;
-    [ObservableProperty] private int _minWidth;
+    [ObservableProperty] private int _minWidth = 150;
     [ObservableProperty] private bool _isCloseable;
     [ObservableProperty] private bool _isIconVisible;
     [ObservableProperty] private bool _isDragging;
+    [ObservableProperty] private Thickness _iconMargin = new(0,0,4,0);
+    [ObservableProperty] private double _iconWidth = 16;
+    [ObservableProperty] private double _iconHeight = 16;
     public TioTabWindowBase Window { get; set; }
 
     public TabEntry(TioTabWindowBase window, ITioTabPage content, object? header = null, string? title = null,
