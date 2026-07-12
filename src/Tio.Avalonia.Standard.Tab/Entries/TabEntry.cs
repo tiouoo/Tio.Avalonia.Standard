@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Tio.Avalonia.Standard.Tab.Common;
@@ -183,6 +185,20 @@ public partial class TabEntry : ObservableObject
         else if (control.Parent is ContentControl contentControl)
         {
             contentControl.Content = null;
+        }
+
+        var visualParent = control.GetVisualParent();
+
+        if (visualParent is ContentPresenter contentPresenter)
+        {
+            contentPresenter.Content = null; 
+        }
+        else if (visualParent is Panel visualPanel)
+        {
+            if (visualPanel.Children.Contains(control))
+            {
+                visualPanel.Children.Remove(control);
+            }
         }
     }
 
