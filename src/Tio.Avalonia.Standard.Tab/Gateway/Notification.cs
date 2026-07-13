@@ -5,11 +5,11 @@ using TopLevel = Avalonia.Controls.TopLevel;
 
 namespace Tio.Avalonia.Standard.Tab.Gateway;
 
-public class NotificationGateway
+public static class NotificationGateway
 {
     public static Func<bool> IsToastFunc = null;
     
-    public static void Notice(TopLevel topLevel, NotificationOptions options)
+    public static void Notice(this TopLevel topLevel, NotificationOptions options)
     {
         if (IsToastFunc())
         {
@@ -21,7 +21,7 @@ public class NotificationGateway
         }
     }
 
-    public static void Notice(TopLevel topLevel, string msg, NotificationType type = NotificationType.Information)
+    public static void Notice(this TopLevel topLevel, string msg, NotificationType type = NotificationType.Information)
     {
         if (IsToastFunc())
         {
@@ -34,7 +34,7 @@ public class NotificationGateway
     }
 
 
-    public static void Notice(TopLevel topLevel, string msg, string title,
+    public static void Notice(this TopLevel topLevel, string msg, string title,
         NotificationType type = NotificationType.Information)
     {
         if (IsToastFunc())

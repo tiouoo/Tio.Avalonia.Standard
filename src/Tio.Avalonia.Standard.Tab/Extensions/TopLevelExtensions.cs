@@ -16,4 +16,9 @@ public static class TopLevelExtensions
     {
         return ((control.GetTopLevel() as TioWindow) as TioTabWindowBase)?.Notification;
     }
+    
+    public static TopLevel AsTopLevel(this object control)
+    {
+        return (control as Control)!.GetTopLevel();
+    }
 }
