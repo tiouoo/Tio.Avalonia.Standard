@@ -5,7 +5,7 @@ using TioUi.Controls;
 
 namespace Tio.Avalonia.Standard.Tab.Extensions;
 
-public static class TopLevel
+public static class TopLevelExtensions
 {
     public static TioToastManager? TryGetToast(this Control control)
     {
