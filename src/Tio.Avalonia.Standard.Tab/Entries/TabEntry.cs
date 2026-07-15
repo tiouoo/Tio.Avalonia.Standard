@@ -127,11 +127,9 @@ public partial class TabEntry : ObservableObject
         
         if (screenPosition.HasValue)
         {
-            var offsetX = -window.Width / 2;
-            var offsetY = -window.Height / 2;
             window.Position = new PixelPoint(
-                screenPosition.Value.X + (int)offsetX - 100,
-                screenPosition.Value.Y + (int)offsetY - 22
+                screenPosition.Value.X - 52,
+                screenPosition.Value.Y - 22
             );
         }
 
