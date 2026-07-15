@@ -1,4 +1,4 @@
 [submodule "module/TioUi.Avalonia"]
 	path = module/TioUi.Avalonia
-	url = git@github.com:tiouoo/TioUi.Avalonia.git
+	url = https://github.com/tiouoo/TioUi.Avalonia.git
 	branch = main
