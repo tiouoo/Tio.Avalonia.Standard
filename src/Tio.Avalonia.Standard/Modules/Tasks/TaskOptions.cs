@@ -14,10 +14,5 @@ public sealed class TaskOptions
     /// </summary>
     public double? Progress { get; init; }
 
-    /// <summary>
-    /// 是否自动提供“取消任务”操作。默认值为 <see langword="true"/>。
-    /// </summary>
-    public bool AddCancellationAction { get; init; } = true;
-
     public IReadOnlyCollection<TaskActionDefinition> Actions { get; init; } = [];
 }

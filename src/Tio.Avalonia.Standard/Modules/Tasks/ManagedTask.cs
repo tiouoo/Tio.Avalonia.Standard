@@ -42,23 +42,6 @@ public sealed class ManagedTask : ObservableObject
         Logs = new ReadOnlyObservableCollection<TaskLogEntry>(_logs);
         _children.CollectionChanged += OnChildrenChanged;
 
-        if (options.AddCancellationAction)
-        {
-            _actions.Add(new TaskAction(this, new TaskActionDefinition
-            {
-                Name = "取消任务",
-                Description = "请求取消此任务及其子任务。",
-                IconKey = "Cancel",
-                ExecuteAsync = (task, _) =>
-                {
-                    task.RequestCancellation();
-                    return Task.CompletedTask;
-                },
-                CanExecute = task => task.CanBeCancelled,
-                IsVisible = task => !task.IsTerminal
-            }));
-        }
-
         foreach (var action in options.Actions)
         {
             _actions.Add(new TaskAction(this, action));
@@ -251,6 +234,14 @@ public sealed class ManagedTask : ObservableObject
         var action = new TaskAction(this, definition);
         _actions.Add(action);
         return action;
+    }
+
+    /// <summary>
+    /// 刷新动态任务操作的可见性和可用性。
+    /// </summary>
+    public void RefreshActions()
+    {
+        foreach (var action in _actions) action.Refresh();
     }
 
     /// <summary>
