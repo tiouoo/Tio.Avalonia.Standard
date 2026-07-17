@@ -9,7 +9,14 @@ public class NavScrollOpacityMaskConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if ((bool)value!)
+        var showLeftFade = value switch
+        {
+            bool flag => flag,
+            Vector offset => offset.X > 0.5,
+            _ => false
+        };
+
+        if (showLeftFade)
             return new LinearGradientBrush
             {
                 StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),

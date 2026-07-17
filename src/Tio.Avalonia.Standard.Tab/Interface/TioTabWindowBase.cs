@@ -3,7 +3,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.Input;
 using Tio.Avalonia.Standard.Modules.Extensions;
@@ -15,6 +17,7 @@ namespace Tio.Avalonia.Standard.Tab.Interface;
 public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
 {
     private static readonly List<TioTabWindowBase> _allWindows = [];
+    private bool _closeApproved;
 
     public static IReadOnlyList<TioTabWindowBase> AllWindows => _allWindows.AsReadOnly();
 
@@ -42,6 +45,7 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
         });
 
         Closed += OnClosed;
+        Closing += OnClosing;
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -55,9 +59,43 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
         return (hash & 0xFFFFFF).ToString("x6");
     }
 
-    public void CloseAllTab()
+    private async void OnClosing(object? sender, WindowClosingEventArgs e)
     {
-        Tabs.ToList().ForEach(x => x.Close());
+        if (_closeApproved) return;
+
+        e.Cancel = true;
+        if (!await CloseAllTabAsync(false)) return;
+
+        _closeApproved = true;
+        Close();
+    }
+
+    public async void CloseAllTab()
+    {
+        await CloseAllTabAsync(true);
+    }
+
+    private async Task<bool> CloseAllTabAsync(bool createLastTab)
+    {
+        var tabs = createLastTab ? Tabs.Where(tab => tab.IsCloseable).ToList() : Tabs.ToList();
+        foreach (var tab in tabs)
+        {
+            if (!await tab.Content.RequestCloseAsync()) return false;
+        }
+
+        foreach (var tab in tabs)
+        {
+            RemoveTab(tab);
+            tab.Content.OnClose();
+        }
+
+        if (createLastTab && Tabs.Count == 0)
+            CreateLastTabFunc?.Invoke();
+
+        if (Tabs.Count > 0)
+            SelectTab(Tabs.Last());
+
+        return true;
     }
 
     public void CreateNewTab()

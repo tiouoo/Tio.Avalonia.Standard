@@ -15,6 +15,7 @@ namespace Tio.Avalonia.Standard.Tab.Entries;
 
 public partial class TabEntry : ObservableObject
 {
+    private bool _isClosing;
     [ObservableProperty] private string _title;
     [ObservableProperty] private StreamGeometry _icon;
     [ObservableProperty] private object _header;
@@ -41,21 +42,30 @@ public partial class TabEntry : ObservableObject
         content.HostTab = this;
     }
 
-    public void Close()
+    public async void Close()
     {
-        if (!IsCloseable) return;
-        var selected = Window.SelectedTab == this;
-        Window.RemoveTab(this);
-        Content.OnClose();
-        if (!selected) return;
-        var tabs = Window.Tabs;
-        if (tabs.Count == 0 && Window.CreateLastTabFunc != null)
+        if (!IsCloseable || _isClosing) return;
+        _isClosing = true;
+        try
         {
-            Window.CreateLastTabFunc();
-        }
+            if (!await Content.RequestCloseAsync()) return;
+            var selected = Window.SelectedTab == this;
+            Window.RemoveTab(this);
+            Content.OnClose();
+            if (!selected) return;
+            var tabs = Window.Tabs;
+            if (tabs.Count == 0 && Window.CreateLastTabFunc != null)
+            {
+                Window.CreateLastTabFunc();
+            }
 
-        if (tabs.Count > 0)
-            Window.SelectTab(tabs.Last());
+            if (tabs.Count > 0)
+                Window.SelectTab(tabs.Last());
+        }
+        finally
+        {
+            _isClosing = false;
+        }
     }
 
     public void MoveTabForward()
@@ -91,12 +101,16 @@ public partial class TabEntry : ObservableObject
         Window.ReorderTab(currentIndex, lastIndex);
     }
 
-    public void CloseOther()
+    public async void CloseOther()
     {
-        foreach (var tab in Window.Tabs.ToList())
+        var tabs = Window.Tabs.Where(tab => tab != this && tab.IsCloseable).ToList();
+        foreach (var tab in tabs)
         {
-            if (tab == this) continue;
-            if (!tab.IsCloseable) continue;
+            if (!await tab.Content.RequestCloseAsync()) return;
+        }
+
+        foreach (var tab in tabs)
+        {
             Window.RemoveTab(tab);
             tab.Content.OnClose();
         }
