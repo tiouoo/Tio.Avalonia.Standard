@@ -1,6 +1,6 @@
 # 任务管理
 
-`Tio.Avalonia.Standard.Modules.Tasks` 提供应用生命周期内统一的任务记录、嵌套、取消、日志和 UI 操作能力。
+`Tio.Avalonia.Standard.Modules.Tasks` 提供应用生命周期内统一的任务记录、嵌套、取消、进度、描述、日志和 UI 操作能力。
 
 ## 基本用法
 
@@ -23,7 +23,7 @@ var task = TaskManager.Instance.CreateTask(
         await WaitForNetworkAsync(context.CancellationToken);
 
         context.SetRunning("正在下载文件");
-        await DownloadAsync(context.CancellationToken);
+        await DownloadAsync(context.CancellationToken, context.ReportProgress);
         context.LogInformation("下载完成。");
     });
 
@@ -32,6 +32,24 @@ task.Start();
 
 await task.Completion;
 ```
+
+## 描述与进度
+
+`Description` 用于显示当前工作说明，例如当前下载文件或等待原因。执行器可通过 `SetWaiting`、`SetRunning` 同时更新状态和说明，也可单独使用 `SetDescription` 更新说明。
+
+进度以 `0` 到 `1` 的值上报；`null` 表示当前无法确定进度。任务完成时进度自动设为 `1`。父任务的 `AggregateProgress` 会平均当前节点和所有后代节点的已知进度，适合用于展示多阶段流程的总进度，避免每个子任务开始时进度条回到零。
+
+```csharp
+context.SetDescription("正在下载 client.jar");
+context.ReportProgress(0.35);
+
+// 不确定总大小时可显示不确定进度条。
+context.ReportProgress(null);
+```
+
+`TaskManager.Instance.CurrentTask` 会遍历整个任务树，并按照失败、执行中、等待、成功的优先级返回应显示的任务；同一状态会选择后创建的节点。标题栏等全局 UI 可绑定其 `CurrentStatus` 和 `CurrentTask`。
+
+已完成的根任务可在 UI 中调用 `TaskManager.Instance.RemoveCompletedTask(task)` 从列表移除。该方法只移除 `Completed` 根任务，失败和已取消任务会保留以便检查状态和日志。
 
 业务代码必须将 `context.CancellationToken` 传入支持取消的异步 API，并在自行实现的长循环中定期调用 `ThrowIfCancellationRequested()`。取消信号到达后，任务可以先执行清理工作，随后抛出 `OperationCanceledException` 或正常返回；两种方式都会在取消已请求时使任务最终变为 `Cancelled`。
 

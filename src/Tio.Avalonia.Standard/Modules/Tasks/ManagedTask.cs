@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -20,6 +21,7 @@ public sealed class ManagedTask : ObservableObject
     private DateTimeOffset? _startedAt;
     private DateTimeOffset? _completedAt;
     private Exception? _exception;
+    private double? _progress;
 
     internal ManagedTask(ManagedTask? parent, TaskOptions options, Func<TaskExecutionContext, Task>? operation)
     {
@@ -29,6 +31,7 @@ public sealed class ManagedTask : ObservableObject
         Parent = parent;
         Name = options.Name ?? throw new ArgumentException("任务名称不能为空。", nameof(options));
         Description = options.Description;
+        Progress = options.Progress;
         _operation = operation;
         _cancellationTokenSource = parent is null
             ? new CancellationTokenSource()
@@ -37,6 +40,7 @@ public sealed class ManagedTask : ObservableObject
         Children = new ReadOnlyObservableCollection<ManagedTask>(_children);
         Actions = new ReadOnlyObservableCollection<TaskAction>(_actions);
         Logs = new ReadOnlyObservableCollection<TaskLogEntry>(_logs);
+        _children.CollectionChanged += OnChildrenChanged;
 
         if (options.AddCancellationAction)
         {
@@ -68,7 +72,12 @@ public sealed class ManagedTask : ObservableObject
     public string? Description
     {
         get => _description;
-        private set => SetProperty(ref _description, value);
+        private set
+        {
+            if (!SetProperty(ref _description, value)) return;
+            OnPropertyChanged(nameof(DisplayDescription));
+            Parent?.NotifyDisplayDescriptionChanged();
+        }
     }
 
     public ManagedTask? Parent { get; }
@@ -88,6 +97,8 @@ public sealed class ManagedTask : ObservableObject
 
             OnPropertyChanged(nameof(IsTerminal));
             OnPropertyChanged(nameof(CanBeCancelled));
+            OnPropertyChanged(nameof(DisplayDescription));
+            Parent?.NotifyDisplayDescriptionChanged();
             foreach (var action in _actions) action.Refresh();
         }
     }
@@ -113,6 +124,34 @@ public sealed class ManagedTask : ObservableObject
     }
 
     public string? ErrorMessage => Exception?.Message;
+
+    /// <summary>
+    /// 当前节点或其后代中最需要关注的任务说明。
+    /// </summary>
+    public string? DisplayDescription => GetDisplayTask()?.Description ?? Description;
+
+    /// <summary>
+    /// 当前节点的进度，范围为 0 到 1。<see langword="null"/> 表示无法确定进度。
+    /// </summary>
+    public double? Progress
+    {
+        get => _progress;
+        private set => SetProperty(ref _progress, value);
+    }
+
+    /// <summary>
+    /// 当前任务树的连续进度。它会将当前节点和所有子任务的已知进度平均，
+    /// 适合在父任务上显示，避免分阶段任务完成时进度条回跳。
+    /// </summary>
+    public double? AggregateProgress
+    {
+        get
+        {
+            var progressValues = new List<double>();
+            CollectProgress(this, progressValues);
+            return progressValues.Count == 0 ? null : progressValues.Average();
+        }
+    }
 
     public bool IsTerminal => Status is ManagedTaskStatus.Cancelled or ManagedTaskStatus.Completed or ManagedTaskStatus.Faulted;
 
@@ -250,6 +289,18 @@ public sealed class ManagedTask : ObservableObject
         Status = ManagedTaskStatus.Running;
     }
 
+    internal void SetDescription(string? description) => Description = description;
+
+    internal void ReportProgress(double? progress)
+    {
+        if (progress is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(progress), "任务进度必须在 0 到 1 之间。");
+
+        EnsureActive();
+        Progress = progress;
+        NotifyAggregateProgressChanged();
+    }
+
     internal void LogDebug(string message) => AddLog(TaskLogLevel.Debug, message);
 
     internal void LogInformation(string message) => AddLog(TaskLogLevel.Information, message);
@@ -290,9 +341,78 @@ public sealed class ManagedTask : ObservableObject
 
     private void CompleteCore(ManagedTaskStatus status)
     {
+        if (status == ManagedTaskStatus.Completed) Progress = 1;
+        NotifyAggregateProgressChanged();
         Status = status;
         CompletedAt = DateTimeOffset.Now;
         _completionSource.TrySetResult();
+    }
+
+    private static void CollectProgress(ManagedTask task, ICollection<double> progressValues)
+    {
+        if (task.Progress is { } progress) progressValues.Add(progress);
+        foreach (var child in task._children) CollectProgress(child, progressValues);
+    }
+
+    private void OnChildrenChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems is not null)
+        {
+            foreach (ManagedTask child in e.NewItems)
+            {
+                child.PropertyChanged += OnChildPropertyChanged;
+            }
+        }
+
+        if (e.OldItems is not null)
+        {
+            foreach (ManagedTask child in e.OldItems)
+            {
+                child.PropertyChanged -= OnChildPropertyChanged;
+            }
+        }
+
+        NotifyAggregateProgressChanged();
+    }
+
+    private void OnChildPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(Progress) or nameof(AggregateProgress)) NotifyAggregateProgressChanged();
+        if (e.PropertyName is nameof(Description) or nameof(DisplayDescription) or nameof(Status))
+            NotifyDisplayDescriptionChanged();
+    }
+
+    private void NotifyAggregateProgressChanged()
+    {
+        OnPropertyChanged(nameof(AggregateProgress));
+        Parent?.NotifyAggregateProgressChanged();
+    }
+
+    private void NotifyDisplayDescriptionChanged()
+    {
+        OnPropertyChanged(nameof(DisplayDescription));
+        Parent?.NotifyDisplayDescriptionChanged();
+    }
+
+    private ManagedTask? GetDisplayTask() => GetDescendants()
+        .Where(task => !string.IsNullOrWhiteSpace(task.Description))
+        .OrderByDescending(task => task.Status switch
+        {
+            ManagedTaskStatus.Faulted => 4,
+            ManagedTaskStatus.Running or ManagedTaskStatus.Cancelling => 3,
+            ManagedTaskStatus.Pending or ManagedTaskStatus.Waiting => 2,
+            _ => 1
+        })
+        .ThenByDescending(task => task.CreatedAt)
+        .FirstOrDefault();
+
+    private IEnumerable<ManagedTask> GetDescendants()
+    {
+        foreach (var child in _children)
+        {
+            yield return child;
+            foreach (var descendant in child.GetDescendants()) yield return descendant;
+        }
     }
 
     private void AddLog(TaskLogLevel level, string message, Exception? exception = null)

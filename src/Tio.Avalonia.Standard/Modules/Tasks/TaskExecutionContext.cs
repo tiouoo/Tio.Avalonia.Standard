@@ -20,6 +20,16 @@ public sealed class TaskExecutionContext
 
     public void SetRunning(string? description = null) => _task.SetRunning(description);
 
+    /// <summary>
+    /// 更新任务描述，例如当前正在下载的文件名。
+    /// </summary>
+    public void SetDescription(string? description) => _task.SetDescription(description);
+
+    /// <summary>
+    /// 上报范围为 0 到 1 的任务进度。<see langword="null"/> 表示进度暂不可确定。
+    /// </summary>
+    public void ReportProgress(double? progress) => _task.ReportProgress(progress);
+
     public void LogDebug(string message) => _task.LogDebug(message);
 
     public void LogInformation(string message) => _task.LogInformation(message);

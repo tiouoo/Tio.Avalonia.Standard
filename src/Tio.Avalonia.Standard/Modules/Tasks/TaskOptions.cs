@@ -10,6 +10,11 @@ public sealed class TaskOptions
     public string? Description { get; init; }
 
     /// <summary>
+    /// 任务的初始进度，范围为 0 到 1。<see langword="null"/> 表示进度暂不可确定。
+    /// </summary>
+    public double? Progress { get; init; }
+
+    /// <summary>
     /// 是否自动提供“取消任务”操作。默认值为 <see langword="true"/>。
     /// </summary>
     public bool AddCancellationAction { get; init; } = true;
