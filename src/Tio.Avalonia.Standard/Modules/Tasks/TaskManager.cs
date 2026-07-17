@@ -23,15 +23,25 @@ public sealed class TaskManager : ObservableObject
     public ReadOnlyObservableCollection<ManagedTask> RootTasks { get; }
 
     /// <summary>
-    /// 根据错误、执行中、等待、成功的优先级选择出的当前任务。
-    /// 同一优先级下返回任务树中后创建的节点。
+    /// 按状态优先级选出的根任务；同一状态取列表中的最后一个任务。
     /// </summary>
-    public ManagedTask? CurrentTask => GetAllTasks()
-        .OrderByDescending(GetDisplayPriority)
-        .ThenByDescending(task => task.CreatedAt)
-        .FirstOrDefault();
+    public ManagedTask? CurrentTask => GetDisplayRootTasks().LastOrDefault();
 
     public ManagedTaskStatus? CurrentStatus => CurrentTask?.Status;
+
+    /// <summary>
+    /// 按状态优先级选出的根任务标题；有多个根任务时，显示其余任务数量。
+    /// </summary>
+    public string? CurrentTaskTitle
+    {
+        get
+        {
+            var task = CurrentTask;
+            if (task is null) return null;
+
+            return _rootTasks.Count == 1 ? task.Name : $"{task.Name} +{_rootTasks.Count - 1}";
+        }
+    }
 
     /// <summary>
     /// 创建处于 <see cref="ManagedTaskStatus.Pending"/> 状态的根任务。
@@ -64,13 +74,12 @@ public sealed class TaskManager : ObservableObject
     }
 
     /// <summary>
-    /// 从任务列表中移除已成功完成的根任务。
-    /// 保留失败和取消任务，便于用户查看其状态和日志。
+    /// 从任务列表中移除已结束的根任务。
     /// </summary>
-    public bool RemoveCompletedTask(ManagedTask task)
+    public bool RemoveTerminalTask(ManagedTask task)
     {
         ArgumentNullException.ThrowIfNull(task);
-        if (task.Parent is not null || task.Status != ManagedTaskStatus.Completed) return false;
+        if (task.Parent is not null || !task.IsTerminal) return false;
 
         return _rootTasks.Remove(task);
     }
@@ -123,24 +132,15 @@ public sealed class TaskManager : ObservableObject
     {
         OnPropertyChanged(nameof(CurrentTask));
         OnPropertyChanged(nameof(CurrentStatus));
+        OnPropertyChanged(nameof(CurrentTaskTitle));
     }
 
-    private IEnumerable<ManagedTask> GetAllTasks()
+    private IReadOnlyList<ManagedTask> GetDisplayRootTasks()
     {
-        foreach (var task in _rootTasks)
-        {
-            yield return task;
-            foreach (var child in GetDescendants(task)) yield return child;
-        }
-    }
+        if (_rootTasks.Count == 0) return [];
 
-    private static IEnumerable<ManagedTask> GetDescendants(ManagedTask task)
-    {
-        foreach (var child in task.Children)
-        {
-            yield return child;
-            foreach (var descendant in GetDescendants(child)) yield return descendant;
-        }
+        var priority = _rootTasks.Max(GetDisplayPriority);
+        return _rootTasks.Where(task => GetDisplayPriority(task) == priority).ToList();
     }
 
     private static int GetDisplayPriority(ManagedTask task) => task.Status switch
@@ -150,4 +150,5 @@ public sealed class TaskManager : ObservableObject
         ManagedTaskStatus.Pending or ManagedTaskStatus.Waiting => 2,
         _ => 1
     };
+
 }
