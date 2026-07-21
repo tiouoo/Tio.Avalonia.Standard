@@ -1,4 +1,5 @@
 ﻿using Avalonia.Controls.Notifications;
+using Tio.Avalonia.Standard.Modules.DiskIO;
 using Tio.Avalonia.Standard.Tab.Extensions;
 using TioUi.Common.Classes;
 using TopLevel = Avalonia.Controls.TopLevel;
@@ -11,6 +12,7 @@ public static class NotificationGateway
     
     public static void Notice(this TopLevel topLevel, NotificationOptions options)
     {
+        Logger.Info($"[Notice] ({options.Type}) {options.Content}");
         if (IsToastFunc())
         {
             topLevel.TryGetToast()?.Show(options);
@@ -23,6 +25,7 @@ public static class NotificationGateway
 
     public static void Notice(this TopLevel topLevel, string msg, NotificationType type = NotificationType.Information)
     {
+        Logger.Info($"[Notice] ({type}) {msg}");
         if (IsToastFunc())
         {
             topLevel.TryGetToast()?.Show(msg, type);
@@ -37,6 +40,7 @@ public static class NotificationGateway
     public static void Notice(this TopLevel topLevel, string msg, string title,
         NotificationType type = NotificationType.Information)
     {
+        Logger.Info($"[Notice] ({type}) {title}: {msg}");
         if (IsToastFunc())
         {
             topLevel.TryGetToast()?.Show(msg, type);
