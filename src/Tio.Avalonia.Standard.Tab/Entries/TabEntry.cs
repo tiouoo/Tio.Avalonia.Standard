@@ -52,6 +52,7 @@ public partial class TabEntry : ObservableObject
             var selected = Window.SelectedTab == this;
             Window.RemoveTab(this);
             Content.OnClose();
+            ReleaseContent();
             if (!selected) return;
             var tabs = Window.Tabs;
             if (tabs.Count == 0 && Window.CreateLastTabFunc != null)
@@ -61,6 +62,8 @@ public partial class TabEntry : ObservableObject
 
             if (tabs.Count > 0)
                 Window.SelectTab(tabs.Last());
+            else
+                Window.SelectedTab = null; // 否则窗口会一直握着刚关闭的标签页
         }
         finally
         {
@@ -113,8 +116,24 @@ public partial class TabEntry : ObservableObject
         {
             Window.RemoveTab(tab);
             tab.Content.OnClose();
+            tab.ReleaseContent();
         }
         Window.SelectTab(this);
+    }
+
+    /// <summary>
+    /// 把页面从可视化树上摘下来，切断 ContentPresenter / 焦点管理器对已关闭页面的引用。
+    /// </summary>
+    internal void ReleaseContent()
+    {
+        if (Content is not Control control)
+            return;
+
+        // 焦点仍停留在被关闭的页面里时，TopLevel 的焦点管理器会一直持有它。
+        if (control.IsKeyboardFocusWithin)
+            TopLevel.GetTopLevel(control)?.Focus();
+
+        DetachControl(control);
     }
 
     public void MoveTabToNewWindow(PixelPoint? screenPosition = null)

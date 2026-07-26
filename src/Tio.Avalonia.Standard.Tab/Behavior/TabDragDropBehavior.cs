@@ -75,6 +75,8 @@ public class TabDragDropBehavior
         container.RemoveHandler(InputElement.PointerReleasedEvent, OnPointerReleased);
         container.RemoveHandler(InputElement.PointerCaptureLostEvent, OnPointerCaptureLost);
 
+        // 释放拖拽过程中缓存的标签页 / 窗口引用，避免分离后仍然持有已关闭的窗口。
+        EndDrag();
         _itemsContainer = null;
         _window = null;
     }

@@ -51,6 +51,18 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
     private void OnClosed(object? sender, EventArgs e)
     {
         _allWindows.Remove(this);
+        Closed -= OnClosed;
+        Closing -= OnClosing;
+
+        // 窗口关闭后彻底断开与页面的联系，否则标签页会随窗口一起被残留引用留在内存里。
+        foreach (var tab in Tabs.ToList())
+            tab.ReleaseContent();
+
+        Tabs.Clear();
+        SelectedTab = null;
+        CreateNewTabFunc = null;
+        CreateLastTabFunc = null;
+        KeyBindings.Clear();
     }
 
     private static string GenerateWindowId()
@@ -87,6 +99,7 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
         {
             RemoveTab(tab);
             tab.Content.OnClose();
+            tab.ReleaseContent();
         }
 
         if (createLastTab && Tabs.Count == 0)
@@ -94,6 +107,8 @@ public class TioTabWindowBase : TioWindow, ITioTabWindow, INotifyPropertyChanged
 
         if (Tabs.Count > 0)
             SelectTab(Tabs.Last());
+        else
+            SelectedTab = null; // 否则窗口会一直握着刚关闭的标签页
 
         return true;
     }

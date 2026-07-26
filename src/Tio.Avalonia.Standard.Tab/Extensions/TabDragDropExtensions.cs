@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Tio.Avalonia.Standard.Tab.Behavior;
 using Tio.Avalonia.Standard.Tab.Interface;
@@ -9,7 +10,8 @@ namespace Tio.Avalonia.Standard.Tab.Extensions;
 /// </summary>
 public static class TabDragDropExtensions
 {
-    private static readonly Dictionary<Control, TabDragDropBehavior> _behaviors = new();
+    // 使用弱引用表：容器被回收后条目会自动消失，避免静态字典长期持有窗口与其下所有标签页。
+    private static readonly ConditionalWeakTable<Control, TabDragDropBehavior> Behaviors = new();
 
     /// <summary>
     /// 为标签页容器启用拖拽重新排序功能
@@ -18,15 +20,12 @@ public static class TabDragDropExtensions
     /// <param name="window">标签页窗口</param>
     public static void EnableTabDragDrop(this Control container, TioTabWindowBase window)
     {
-        if (_behaviors.ContainsKey(container))
-        {
-            // 如果已经启用，先禁用旧的
-            container.DisableTabDragDrop();
-        }
+        // 如果已经启用，先禁用旧的
+        container.DisableTabDragDrop();
 
         var behavior = new TabDragDropBehavior();
         behavior.Attach(container, window);
-        _behaviors[container] = behavior;
+        Behaviors.Add(container, behavior);
     }
 
     /// <summary>
@@ -35,10 +34,10 @@ public static class TabDragDropExtensions
     /// <param name="container">标签页容器控件</param>
     public static void DisableTabDragDrop(this Control container)
     {
-        if (_behaviors.TryGetValue(container, out var behavior))
-        {
-            behavior.Detach(container);
-            _behaviors.Remove(container);
-        }
+        if (!Behaviors.TryGetValue(container, out var behavior))
+            return;
+
+        behavior.Detach(container);
+        Behaviors.Remove(container);
     }
 }
