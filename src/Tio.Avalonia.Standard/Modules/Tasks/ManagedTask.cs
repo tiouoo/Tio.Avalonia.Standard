@@ -180,15 +180,35 @@ public sealed class ManagedTask : ObservableObject
 
         Status = ManagedTaskStatus.Cancelling;
         LogInformation("已请求取消任务，正在等待清理完成。");
-        _cancellationTokenSource.Cancel();
+        // Cancel() synchronously invokes every registered callback. Download and timer callbacks can be
+        // expensive, so invoking it from an Avalonia command freezes the UI until all callbacks return.
+        // Child tokens are linked to this token and receive cancellation from this single request.
+        _ = Task.Run(CancelCore);
 
         foreach (var child in _children)
         {
-            child.RequestCancellation();
+            child.MarkCancelling();
         }
+    }
 
-        // 尚未启动的任务没有执行器或资源需要收尾，可以立即结束取消。
-        if (StartedAt is null) CompleteCore(ManagedTaskStatus.Cancelled);
+    private void CancelCore()
+    {
+        try
+        {
+            _cancellationTokenSource.Cancel();
+        }
+        catch
+        {
+            // Cancellation callbacks must never bring down the worker that propagates cancellation.
+        }
+    }
+
+    private void MarkCancelling()
+    {
+        if (!CanBeCancelled) return;
+
+        Status = ManagedTaskStatus.Cancelling;
+        foreach (var child in _children) child.MarkCancelling();
     }
 
     public string GetFormattedLog()
