@@ -19,19 +19,11 @@ public class Logger
     private static string _logFilePath = string.Empty;
     private static bool _initialized;
     private static readonly StringBuilder LogCache = new();
-
-    /// <summary>
-    /// 初始化日志系统（解耦了路径、应用名称以及版本获取方式）
-    /// </summary>
-    /// <param name="logDirectory">日志存储的文件夹路径</param>
-    /// <param name="appName">应用/项目名称</param>
-    /// <param name="callingAssembly">用于获取版本的程序集（如果不传，默认使用调用该方法的程序集）</param>
-    /// <param name="versionResourceName">内嵌版本文本的资源路径（可选）</param>
+    
     public static void Initialize(
         string logDirectory, 
         string appName = "Application", 
-        Assembly? callingAssembly = null, 
-        string? versionResourceName = null)
+        string version = "Unknown")
     {
         if (_initialized) return;
 
@@ -65,36 +57,15 @@ public class Logger
             // 清理旧日志文件，保持备份数量不超过上限
             CleanupOldLogFiles(logDirectory);
 
-            // 动态获取版本号
-            string version = "Unknown";
-            callingAssembly ??= Assembly.GetCallingAssembly();
-
-            if (!string.IsNullOrEmpty(versionResourceName))
+            // 如果传入空字符串或纯空格，兜底显示为 "Unknown"
+            if (string.IsNullOrWhiteSpace(version))
             {
-                try
-                {
-                    using var stream = callingAssembly.GetManifestResourceStream(versionResourceName);
-                    if (stream != null)
-                    {
-                        using var reader = new StreamReader(stream);
-                        version = reader.ReadToEnd().Trim();
-                    }
-                }
-                catch
-                {
-                    // 读取嵌入资源失败时降级
-                    version = callingAssembly.GetName().Version?.ToString() ?? "Unknown";
-                }
-            }
-            else
-            {
-                // 如果没有提供资源路径，直接读取程序集的 Version 属性
-                version = callingAssembly.GetName().Version?.ToString() ?? "Unknown";
+                version = "Unknown";
             }
 
             // 组装通用文件头
             var header = $"== {appName} Log {timestamp} ==\n" +
-                         $"Version: v{version}\n" +
+                         $"Version: {version}\n" +
                          $"OS: {Environment.OSVersion}\n" +
                          $"Runtime: {Environment.Version}\n" +
                          "===============================\n";
@@ -167,7 +138,6 @@ public class Logger
         {
             if (!_initialized)
             {
-                // 如果日志系统尚未初始化，将日志缓存起来
                 lock (LockObj)
                 {
                     LogCache.Append(logEntry);
@@ -181,7 +151,6 @@ public class Logger
                 File.AppendAllText(_logFilePath, logEntry);
             }
 
-            // 同时输出到控制台
             Console.WriteLine($"[{level}] {message}");
         }
         catch (Exception ex)
