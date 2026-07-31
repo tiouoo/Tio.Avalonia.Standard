@@ -71,6 +71,38 @@ public partial class TabEntry : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Closes a tab without requesting confirmation from its content.
+    /// Intended for operations that invalidate the content, such as deleting its backing instance.
+    /// </summary>
+    public void CloseImmediately()
+    {
+        if (!IsCloseable || _isClosing) return;
+
+        _isClosing = true;
+        try
+        {
+            var selected = Window.SelectedTab == this;
+            Window.RemoveTab(this);
+            Content.OnClose();
+            ReleaseContent();
+            if (!selected) return;
+
+            var tabs = Window.Tabs;
+            if (tabs.Count == 0 && Window.CreateLastTabFunc != null)
+                Window.CreateLastTabFunc();
+
+            if (tabs.Count > 0)
+                Window.SelectTab(tabs.Last());
+            else
+                Window.SelectedTab = null;
+        }
+        finally
+        {
+            _isClosing = false;
+        }
+    }
+
     public void MoveTabForward()
     {
         var tabs = Window.Tabs;
