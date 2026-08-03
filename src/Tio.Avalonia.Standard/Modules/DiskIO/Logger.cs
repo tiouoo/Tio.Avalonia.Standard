@@ -48,9 +48,9 @@ public class Logger
                 {
                     File.Move(_logFilePath, backupPath);
                 }
-                catch
+                catch (Exception exception)
                 {
-                    // 如果移动失败，继续使用当前文件
+                    WriteFallbackError("轮换旧日志文件失败，将继续写入当前日志文件。", exception);
                 }
             }
 
@@ -88,7 +88,7 @@ public class Logger
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"日志系统初始化失败: {ex.Message}");
+            WriteFallbackError("日志系统初始化失败。", ex);
         }
     }
 
@@ -115,16 +115,16 @@ public class Logger
                         file.Delete();
                         Console.WriteLine($"删除过时日志文件 : {file.Name}");
                     }
-                    catch
+                    catch (Exception exception)
                     {
-                        // 如果删除失败，继续处理下一个文件
+                        WriteFallbackError($"删除过时日志文件失败：{file.FullName}", exception);
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"清理过时日志文件失败: {ex.Message}");
+            WriteFallbackError("清理过时日志文件失败。", ex);
         }
     }
 
@@ -155,7 +155,7 @@ public class Logger
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"写入日志失败: {ex.Message}");
+            WriteFallbackError($"写入 {level} 日志失败。", ex);
         }
     }
 
@@ -167,15 +167,28 @@ public class Logger
 
     public static void Error(string message) => WriteLog(LogLevel.Error, message);
 
-    public static void Error(Exception ex) => Error($"{ex.Message}\n{ex.StackTrace}");
+    public static void Error(Exception ex) => Error(ex.ToString());
+
+    public static void Error(string message, Exception ex) => Error($"{message}{Environment.NewLine}{ex}");
 
     public static void Fatal(string message) => WriteLog(LogLevel.Fatal, message);
 
     public static void Fatal(Exception ex)
     {
-        var message = $"{ex.Message}\n{ex.StackTrace}";
-        if (ex.InnerException != null)
-            message += $"\n发生致命错误: {ex.InnerException.Message}\n{ex.InnerException.StackTrace}";
-        Fatal(message);
+        Fatal(ex.ToString());
+    }
+
+    public static void Fatal(string message, Exception ex) => Fatal($"{message}{Environment.NewLine}{ex}");
+
+    private static void WriteFallbackError(string message, Exception exception)
+    {
+        try
+        {
+            Console.Error.WriteLine($"[Logger] {message}{Environment.NewLine}{exception}");
+        }
+        catch
+        {
+            // Console output is the final logging fallback and may be unavailable in GUI applications.
+        }
     }
 }
