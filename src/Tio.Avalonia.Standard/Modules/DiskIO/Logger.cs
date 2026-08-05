@@ -18,7 +18,15 @@ public class Logger
     private static readonly Lock LockObj = new();
     private static string _logFilePath = string.Empty;
     private static bool _initialized;
+    private static int _minimumLevel = (int)LogLevel.Info;
     private static readonly StringBuilder LogCache = new();
+
+    public static LogLevel MinimumLevel
+    {
+        get => (LogLevel)Volatile.Read(ref _minimumLevel);
+        set => Volatile.Write(ref _minimumLevel,
+            Enum.IsDefined(value) ? (int)value : (int)LogLevel.Info);
+    }
     
     public static void Initialize(
         string logDirectory, 
@@ -130,6 +138,9 @@ public class Logger
 
     private static void WriteLog(LogLevel level, string message)
     {
+        if (level < MinimumLevel)
+            return;
+
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
         var threadId = Thread.CurrentThread.ManagedThreadId.ToString();
         var logEntry = $"[{timestamp}] [{level}] [Thread-{threadId}] {message}\n";
