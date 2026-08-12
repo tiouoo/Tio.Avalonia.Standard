@@ -121,7 +121,7 @@ public class Logger
                     try
                     {
                         file.Delete();
-                        Console.WriteLine($"删除过时日志文件 : {file.Name}");
+                        Info($"删除过时日志文件 : {file.Name}");
                     }
                     catch (Exception exception)
                     {
