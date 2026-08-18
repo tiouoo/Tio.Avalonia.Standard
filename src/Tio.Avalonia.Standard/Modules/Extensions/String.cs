@@ -1,13 +1,21 @@
-﻿using System.Text.RegularExpressions;
-using Newtonsoft.Json;
+﻿using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Tio.Avalonia.Standard.Modules.Extensions;
 
 public static class Extensions
 {
-    public static string AsJson(this object obj, Formatting formatting = Formatting.Indented)
+    public static string AsJson(this object obj, bool indented = true)
     {
-        return JsonConvert.SerializeObject(obj, formatting);
+        var options = new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        if (indented)
+        {
+            options.WriteIndented = true;
+            options.IndentSize = 2;
+        }
+
+        return JsonSerializer.Serialize(obj, obj.GetType(), options);
     }
 
     public static bool IsNullOrWhiteSpace(this string? str)
