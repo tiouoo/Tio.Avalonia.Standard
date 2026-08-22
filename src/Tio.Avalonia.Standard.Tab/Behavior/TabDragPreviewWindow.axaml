@@ -35,6 +35,15 @@
         Opacity="1"
         Padding="8,6,8,6">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock
+                FontSize="14"
+                Foreground="{DynamicResource InnerForegroundColor}"
+                Height="18"
+                IsVisible="False"
+                Margin="0,0,4,0"
+                VerticalAlignment="Center"
+                Width="18"
+                x:Name="FontIconPath" />
             <PathIcon
                 Height="18"
                 Margin="0,0,4,0"

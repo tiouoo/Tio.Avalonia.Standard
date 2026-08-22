@@ -17,15 +17,24 @@ public partial class TabDragPreviewWindow : Window
     public void UpdateContent(TabEntry tab)
     {
         Header.Content = tab.Header;
-        
-        if (tab.Icon != null && tab.IsIconVisible)
+
+        if (tab.IsIconVisible && tab.HasFontIcon)
+        {
+            FontIconPath.Text = tab.IconGlyph;
+            FontIconPath.FontFamily = string.IsNullOrEmpty(tab.IconFont) ? null : new FontFamily(tab.IconFont);
+            FontIconPath.IsVisible = true;
+            IconPath.IsVisible = false;
+        }
+        else if (tab.Icon != null && tab.IsIconVisible)
         {
             IconPath.Data = tab.Icon;
             IconPath.IsVisible = true;
+            FontIconPath.IsVisible = false;
         }
         else
         {
             IconPath.IsVisible = false;
+            FontIconPath.IsVisible = false;
         }
 
         Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));

@@ -17,7 +17,9 @@ public partial class TabEntry : ObservableObject
 {
     private bool _isClosing;
     [ObservableProperty] private string _title;
-    [ObservableProperty] private StreamGeometry _icon;
+    [ObservableProperty] private StreamGeometry? _icon;
+    [ObservableProperty] private string? _iconGlyph;
+    [ObservableProperty] private string? _iconFont;
     [ObservableProperty] private object _header;
     [ObservableProperty] private ITioTabPage _content;
     [ObservableProperty] private int _minWidth = 150;
@@ -29,12 +31,21 @@ public partial class TabEntry : ObservableObject
     [ObservableProperty] private double _iconHeight = 16;
     public TioTabWindowBase Window { get; set; }
 
+    public bool HasFontIcon => !string.IsNullOrEmpty(IconGlyph);
+
+    partial void OnIconGlyphChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasFontIcon));
+    }
+
     public TabEntry(TioTabWindowBase window, ITioTabPage content, object? header = null, string? title = null,
         StreamGeometry? icon = null, bool? isCloseable = true, bool? isIconVisible = true)
     {
         Window = window;
         Title = title ?? content.PageInfo.Title;
         Icon = icon ?? content.PageInfo.Icon;
+        IconGlyph = content.PageInfo.IconGlyph;
+        IconFont = content.PageInfo.IconFont;
         Header = header ?? content.PageInfo.Header ?? Title;
         Content = content;
         IsCloseable = isCloseable ?? content.PageInfo.IsCloseable;
