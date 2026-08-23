@@ -30,7 +30,7 @@ public sealed class TaskManager : ObservableObject
     public ManagedTaskStatus? CurrentStatus => CurrentTask?.Status;
 
     /// <summary>
-    /// 按状态优先级选出的根任务标题；有多个根任务时，显示其余任务数量。
+    /// 按状态优先级选出的根任务标题。
     /// </summary>
     public string? CurrentTaskTitle
     {
@@ -39,9 +39,13 @@ public sealed class TaskManager : ObservableObject
             var task = CurrentTask;
             if (task is null) return null;
 
-            return _rootTasks.Count == 1 ? task.Name : $"{task.Name} +{_rootTasks.Count - 1}";
+            return task.Name;
         }
     }
+
+    public int AdditionalTaskCount => Math.Max(0, _rootTasks.Count - 1);
+
+    public bool HasAdditionalTasks => AdditionalTaskCount > 0;
 
     /// <summary>
     /// 创建处于 <see cref="ManagedTaskStatus.Pending"/> 状态的根任务。
@@ -133,6 +137,8 @@ public sealed class TaskManager : ObservableObject
         OnPropertyChanged(nameof(CurrentTask));
         OnPropertyChanged(nameof(CurrentStatus));
         OnPropertyChanged(nameof(CurrentTaskTitle));
+        OnPropertyChanged(nameof(AdditionalTaskCount));
+        OnPropertyChanged(nameof(HasAdditionalTasks));
     }
 
     private IReadOnlyList<ManagedTask> GetDisplayRootTasks()
