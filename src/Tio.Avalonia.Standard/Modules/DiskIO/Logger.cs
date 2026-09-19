@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Tio.Avalonia.Standard.Modules.DiskIO;
@@ -143,7 +145,8 @@ public class Logger
 
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
         var threadId = Thread.CurrentThread.ManagedThreadId.ToString();
-        var logEntry = $"[{timestamp}] [{level}] [Thread-{threadId}] {message}\n";
+        var source = GetCallSource();
+        var logEntry = $"[{timestamp}] [{level}] [Thread-{threadId}] [{source}] {message}\n";
 
         try
         {
@@ -153,7 +156,7 @@ public class Logger
                 {
                     LogCache.Append(logEntry);
                 }
-                Console.WriteLine($"[{level}] {message}");
+                Console.WriteLine($"[{level}] [{source}] {message}");
                 return;
             }
 
@@ -162,7 +165,7 @@ public class Logger
                 File.AppendAllText(_logFilePath, logEntry);
             }
 
-            Console.WriteLine($"[{level}] {message}");
+            Console.WriteLine($"[{level}] [{source}] {message}");
         }
         catch (Exception ex)
         {
@@ -190,6 +193,36 @@ public class Logger
     }
 
     public static void Fatal(string message, Exception ex) => Fatal($"{message}{Environment.NewLine}{ex}");
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static string GetCallSource()
+    {
+        var frames = new StackTrace().GetFrames();
+        foreach (var frame in frames)
+        {
+            var method = frame.GetMethod();
+            var declaringType = method?.DeclaringType;
+            if (method is null || declaringType is null || declaringType == typeof(Logger))
+                continue;
+
+            if (typeof(IAsyncStateMachine).IsAssignableFrom(declaringType))
+            {
+                var stateMachineType = declaringType;
+                declaringType = stateMachineType.DeclaringType;
+                method = declaringType?.GetMethods(BindingFlags.Instance | BindingFlags.Static |
+                                                   BindingFlags.Public | BindingFlags.NonPublic)
+                    .FirstOrDefault(candidate => candidate.GetCustomAttribute<AsyncStateMachineAttribute>()?.StateMachineType == stateMachineType)
+                    ?? method;
+            }
+
+            var typeName = declaringType?.FullName;
+            return string.IsNullOrEmpty(typeName)
+                ? method.Name
+                : $"{typeName}.{method.Name}";
+        }
+
+        return "Unknown";
+    }
 
     private static void WriteFallbackError(string message, Exception exception)
     {
